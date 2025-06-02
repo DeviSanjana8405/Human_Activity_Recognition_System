@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Recognition</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+}
+
+form {
+    margin: 20px 0;
+}
+
+input[type="file"], input[type="text"] {
+    padding: 10px;
+    margin: 5px;
+    width: 300px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    margin: 5px 0;
+    font-size: 18px;
+}
+
+#chatbotResponse {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #333;
+    font-weight: bold;
+}
+
+    </style>
+</head>
+<body>
+
+    <h1>Human Activity Recognition</h1>
+
+    <!-- Video Upload Form -->
+    <form action="/process" method="POST" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*" required>
+        <button type="submit">Process Video</button>
+    </form>
+
+    <h2>Detected Activities:</h2>
+    <ul>
+        {% for activity, start_time, end_time in activities %}
+            <li>{{ activity }} - Started at {{ start_time }} ms, Ended at {{ end_time }} ms</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Chatbot -->
+    <h2>Chatbot:</h2>
+    <form id="chatbotForm">
+        <input type="text" id="query" name="query" placeholder="Ask about an activity..." required>
+        <button type="submit">Ask</button>
+    </form>
+
+    <div id="chatbotResponse"></div>
+
+    <script>
+        document.getElementById('chatbotForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('query').value;
+            fetch('/chatbot', {
+                method: 'POST',
+                body: new URLSearchParams({ 'query': query }),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('chatbotResponse').innerText = data.response;
+            });
+        });
+    </script>
+
+</body>
+</html>

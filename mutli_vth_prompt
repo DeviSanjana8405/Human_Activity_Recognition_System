@@ -1,0 +1,90 @@
+import cv2
+import numpy as np
+from collections import deque
+
+# Paths
+CLASSES = open(r"C:\Users\sanjanasuresh\OneDrive\Desktop\human-activity-recognition-master\human-activity-recognition-master\model\action_recognition_kinetics.txt").read().strip().split("\n")
+MODEL_PATH = r"C:\Users\sanjanasuresh\OneDrive\Desktop\human-activity-recognition-master\human-activity-recognition-master\model\resnet-34_kinetics (1).onnx"
+VIDEO_PATH = "test/test3.mp4"
+SAMPLE_DURATION = 16
+SAMPLE_SIZE = 112
+
+# Load model
+print("[INFO] Loading Action Recognition Model...")
+net = cv2.dnn.readNet(MODEL_PATH)
+
+# Open video
+print("[INFO] Opening video...")
+cap = cv2.VideoCapture(VIDEO_PATH)
+fps = cap.get(cv2.CAP_PROP_FPS)
+frames = deque(maxlen=SAMPLE_DURATION)
+
+frame_counter = 0
+second_counter = 0
+
+# Store recognized actions and their timestamps
+recognized_actions = []
+prev_label = ""
+
+# Define a function to search for action by prompt
+def search_action(prompt):
+    for label, ts in recognized_actions:
+        if prompt.lower() in label.lower():
+            print(f"Action '{label}' found at {int(ts // 60):02d}:{int(ts % 60):02d}")
+            return ts
+    print("Action not found!")
+    return None
+
+# Main loop to process the video
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = cv2.resize(frame, (550, 400))
+    resized = cv2.resize(frame, (SAMPLE_SIZE, SAMPLE_SIZE))
+    frames.append(resized)
+    frame_counter += 1
+
+    # Every 1 second (based on FPS), run prediction
+    if frame_counter % int(fps) == 0 and len(frames) == SAMPLE_DURATION:
+        # Prepare blob
+        blob = cv2.dnn.blobFromImages(frames, 1.0, (SAMPLE_SIZE, SAMPLE_SIZE),
+                                      (114.7748, 107.7354, 99.4750),
+                                      swapRB=True, crop=True)
+        blob = np.transpose(blob, (1, 0, 2, 3))
+        blob = np.expand_dims(blob, axis=0)
+
+        net.setInput(blob)
+        output = net.forward()
+        label = CLASSES[np.argmax(output)]
+
+        mins = int(second_counter // 60)
+        secs = int(second_counter % 60)
+        print(f"{label} at {mins:02d}:{secs:02d}")
+        second_counter += 1
+
+        # Store the recognized action and its timestamp
+        if label != prev_label:
+            timestamp = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            recognized_actions.append((label, round(timestamp, 2)))
+            prev_label = label
+
+        # Draw label on the frame
+        cv2.rectangle(frame, (0, 0), (350, 40), (255, 255, 255), -1)
+        cv2.putText(frame, f"{label} ({mins:02d}:{secs:02d})", (10, 25),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+
+    # Show video
+    cv2.imshow("Action Recognition (Every Second)", frame)
+
+    # Check for key press to search action
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):  # Press 'q' to exit
+        break
+    elif key == ord('s'):  # Press 's' to search for action by prompt
+        prompt = input("Enter action to search for: ")
+        search_action(prompt)
+
+cap.release()
+cv2.destroyAllWindows()

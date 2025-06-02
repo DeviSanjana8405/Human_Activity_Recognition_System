@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Human Activity Recognition</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1, h2 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      background: white;
+      margin: 0 auto;
+      padding: 30px 40px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    input[type="number"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #results {
+      background-color: #ecf0f1;
+      border-radius: 6px;
+      padding: 15px;
+      box-shadow: inset 0 0 5px #bdc3c7;
+      font-size: 1rem;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #999;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+      }
+
+      button {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Human Activity Recognition</h1>
+
+    <form action="/process" method="post" enctype="multipart/form-data">
+      <label for="video">Select a video file to upload and analyze:</label>
+      <input type="file" id="video" name="video" accept="video/*" required />
+      <button type="submit">Upload & Process Video</button>
+    </form>
+
+    <h2>Search Activities by Time Range (in milliseconds)</h2>
+    <form id="searchForm" onsubmit="return false;">
+      <label for="start_time">Start Time (ms):</label>
+      <input type="number" id="start_time" min="0" placeholder="e.g., 1000" required />
+
+      <label for="end_time">End Time (ms):</label>
+      <input type="number" id="end_time" min="0" placeholder="e.g., 5000" required />
+
+      <button type="button" onclick="searchActivities()">Search Activities</button>
+    </form>
+
+    <div id="results"></div>
+  </div>
+
+  <div class="footer">
+    &copy; 2025 Human Activity Recognition Project
+  </div>
+
+  <script>
+    function searchActivities() {
+      const startInput = document.getElementById('start_time');
+      const endInput = document.getElementById('end_time');
+
+      const start = parseFloat(startInput.value);
+      const end = parseFloat(endInput.value);
+
+      if (isNaN(start) || isNaN(end)) {
+        alert("Please enter valid numbers for both start and end times.");
+        return;
+      }
+
+      if (start > end) {
+        alert("Start time must be less than or equal to End time.");
+        return;
+      }
+
+      fetch('/search_activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_time: start, end_time: end })
+      })
+        .then(response => response.json())
+        .then(data => {
+          const resultsDiv = document.getElementById('results');
+          if (data.activities.length > 0) {
+            resultsDiv.innerHTML = '<h3>Activities found in given time range:</h3><ul>' +
+              data.activities.map(act =>
+                `<li><strong>${act.activity}</strong> &mdash; ${act.start_time.toFixed(0)} ms to ${act.end_time.toFixed(0)} ms</li>`
+              ).join('') +
+              '</ul>';
+          } else {
+            resultsDiv.innerHTML = '<p>No activities found in this time range.</p>';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error searching activities.");
+        });
+    }
+  </script>
+</body>
+</html>

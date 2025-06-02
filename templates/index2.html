@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Human Activity Recognition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+        /* Reset some default styling */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 720px;
+            width: 100%;
+            background-color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-weight: 700;
+            font-size: 2.2rem;
+            color: #222;
+            margin-bottom: 25px;
+            text-align: center;
+            letter-spacing: 0.04em;
+        }
+
+        h2 {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e3e8ef;
+            padding-bottom: 8px;
+        }
+
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        label {
+            flex: 1 1 100%;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+            user-select: none;
+        }
+
+        input[type="file"] {
+            flex: 1 1 auto;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1.8px solid #ccc;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+        }
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 6px rgba(74, 144, 226, 0.4);
+        }
+
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+        }
+
+        button:hover {
+            background-color: #357abd;
+            box-shadow: 0 6px 15px rgba(53, 122, 189, 0.5);
+        }
+
+        #query {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1.8px solid #ccc;
+            flex-grow: 1;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        #query:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 6px rgba(74, 144, 226, 0.4);
+        }
+
+        #response {
+            margin-top: 15px;
+            font-weight: 600;
+            color: #222;
+            min-height: 24px;
+            transition: color 0.3s ease;
+            user-select: text;
+        }
+
+        .activity-list {
+            margin-top: 15px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .activity-item {
+            background-color: #f0f4fa;
+            border-left: 4px solid #4a90e2;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+            user-select: text;
+        }
+
+        video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background-color: black;
+            margin-top: 20px;
+        }
+
+        /* Scrollbar for activity list */
+        .activity-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .activity-list::-webkit-scrollbar-thumb {
+            background-color: #a9b9d6;
+            border-radius: 3px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            button {
+                padding: 10px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Human Activity Recognition</h1>
+
+        <form action="/process" method="post" enctype="multipart/form-data" id="uploadForm">
+            <label for="video">Select a video to upload:</label>
+            <input type="file" name="video" id="video" accept="video/*" required />
+            <button type="submit">Upload & Process</button>
+        </form>
+
+        {% if activities %}
+            <h2>Detected Activities</h2>
+            <div class="activity-list" role="list" aria-label="List of detected activities">
+                {% for activity, start, end in activities %}
+                    <div class="activity-item" role="listitem" tabindex="0" aria-label="{{ activity }} from {{ start|round|int }} milliseconds to {{ end|round|int }} milliseconds">
+                        <strong>{{ activity }}</strong> ({{ start|round|int }} ms → {{ end|round|int }} ms)
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <h2>Ask Chatbot About an Activity</h2>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="query" placeholder="e.g., walking, running" aria-label="Activity query input" />
+            <button onclick="askChatbot()" aria-label="Ask chatbot about activity">Ask</button>
+        </div>
+        <div id="response" aria-live="polite" role="status"></div>
+
+        <h2>Activity Playback</h2>
+        <video id="activityVideo" controls preload="metadata">
+            <source src="" type="video/mp4" />
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <script>
+        function askChatbot() {
+            const query = document.getElementById("query").value.trim();
+            if (!query) {
+                document.getElementById("response").innerText = "Please enter an activity to ask about.";
+                return;
+            }
+
+            fetch('/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `query=${encodeURIComponent(query)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("response").innerText = data.response || "No response from server.";
+                if (data.play_url) {
+                    const video = document.getElementById("activityVideo");
+                    video.src = data.play_url;
+                    video.load();
+                    video.onloadedmetadata = () => {
+                        if (!isNaN(data.start_time_sec) && data.start_time_sec >= 0) {
+                            video.currentTime = data.start_time_sec;
+                        }
+                        video.play();
+                    };
+                }
+            })
+            .catch(() => {
+                document.getElementById("response").innerText = "Error contacting chatbot. Please try again.";
+            });
+        }
+    </script>
+</body>
+</html>
